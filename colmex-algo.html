@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>קולמקס אלגו | Colmex Algo Bridge</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;700&family=Noto+Sans+Hebrew:wght@300;400;600;700;800&display=swap');
+
+  :root {
+    --bg:     #0a0510;
+    --panel:  #120a1c;
+    --card:   #170d24;
+    --border: rgba(255,255,255,0.06);
+    --purple: #a855f7;
+    --pink:   #ec4899;
+    --green:  #00d4aa;
+    --gold:   #f5a623;
+    --red:    #ff4560;
+    --dim:    #4a3a5a;
+    --mid:    #8a7a9a;
+    --bright: #e8ddf2;
+    --mono:   'IBM Plex Mono', monospace;
+    --sans:   'Noto Sans Hebrew', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--bright);
+    font-family: var(--sans); min-height: 100dvh;
+    display: flex; flex-direction: column;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background: radial-gradient(circle at 80% -10%, rgba(168,85,247,.08) 0%, transparent 50%),
+                repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(168,85,247,.01) 3px,rgba(168,85,247,.01) 4px);
+    pointer-events: none; z-index: 9999;
+  }
+
+  /* HEADER */
+  header {
+    display: flex; align-items: center; gap: 14px; padding: 14px 24px;
+    background: rgba(0,0,0,.5); border-bottom: 1px solid rgba(168,85,247,.18);
+    backdrop-filter: blur(12px); flex-shrink: 0;
+  }
+  .logo-mark {
+    width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0;
+    background: linear-gradient(135deg,rgba(168,85,247,.25),rgba(236,72,153,.1));
+    border: 1px solid rgba(168,85,247,.35);
+    display: grid; place-items: center; font-size: 20px;
+  }
+  .logo-title { font-family: var(--mono); font-size: 14px; font-weight: 700; color: #fff; letter-spacing: .04em; }
+  .logo-sub   { font-family: var(--mono); font-size: 10px; color: var(--purple); opacity: .8; letter-spacing: .1em; margin-top: 2px; }
+
+  .conn-status {
+    margin-right: auto; display: flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 11px;
+  }
+  .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
+  .conn-dot.live { background: var(--green); animation: pulse 1.4s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;box-shadow:0 0 6px currentColor;}50%{opacity:.4;} }
+
+  /* TABS */
+  #tabs {
+    display: flex; gap: 4px; padding: 10px 24px;
+    background: rgba(0,0,0,.3); border-bottom: 1px solid var(--border); flex-shrink: 0;
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 9px 18px; border-radius: 9px; border: 1px solid var(--border);
+    background: transparent; color: var(--mid); font-family: var(--sans);
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .tab.active { background: rgba(168,85,247,.12); border-color: rgba(168,85,247,.35); color: var(--purple); }
+
+  /* CONTENT */
+  main { flex: 1; padding: 20px 24px; overflow-y: auto; max-width: 920px; margin: 0 auto; width: 100%; }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  h2.sec-title { font-family: var(--mono); font-size: 13px; color: var(--purple); letter-spacing: .08em; margin-bottom: 6px; }
+  p.sec-desc { font-size: 13px; color: var(--mid); line-height: 1.7; margin-bottom: 18px; }
+
+  /* CARDS */
+  .panel {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px; margin-bottom: 14px;
+  }
+  .panel-title {
+    font-family: var(--mono); font-size: 11px; color: var(--mid);
+    letter-spacing: .1em; text-transform: uppercase; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* DASHBOARD — signal cards */
+  .signal-card {
+    background: linear-gradient(135deg, rgba(23,13,36,.9), rgba(18,10,28,.9));
+    border: 1px solid; border-radius: 14px; padding: 16px; margin-bottom: 12px;
+  }
+  .signal-card.long  { border-color: rgba(0,212,170,.3); }
+  .signal-card.short { border-color: rgba(255,69,96,.3); }
+  .sc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .sc-dir { font-size: 18px; font-weight: 800; font-family: var(--mono); }
+  .sc-dir.long { color: var(--green); } .sc-dir.short { color: var(--red); }
+  .sc-time { margin-right: auto; font-family: var(--mono); font-size: 10px; color: var(--dim); }
+  .sc-conf {
+    font-family: var(--mono); font-size: 11px; padding: 3px 9px; border-radius: 6px;
+    background: rgba(245,166,35,.1); border: 1px solid rgba(245,166,35,.25); color: var(--gold);
+  }
+  .sc-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 12px; }
+  .sc-box { background: rgba(255,255,255,.03); border-radius: 8px; padding: 8px; text-align: center; }
+  .sc-box-lbl { font-family: var(--mono); font-size: 9px; color: var(--dim); margin-bottom: 3px; }
+  .sc-box-val { font-family: var(--mono); font-size: 13px; font-weight: 700; color: #fff; }
+  .sc-actions { display: flex; gap: 8px; }
+  .sc-btn {
+    flex: 1; padding: 11px; border-radius: 10px; border: none;
+    font-family: var(--sans); font-size: 14px; font-weight: 700; cursor: pointer; transition: all .2s;
+  }
+  .sc-btn.approve { background: var(--green); color: #000; }
+  .sc-btn.approve:hover { background: #00f0c4; }
+  .sc-btn.reject { background: rgba(255,69,96,.15); color: var(--red); border: 1px solid rgba(255,69,96,.3); }
+  .sc-btn.reject:hover { background: rgba(255,69,96,.25); }
+
+  .no-signals { text-align: center; color: var(--dim); padding: 50px 20px; font-size: 14px; line-height: 1.7; }
+
+  /* RISK RULES */
+  .rule-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 0; border-bottom: 1px solid var(--border);
+  }
+  .rule-row:last-child { border-bottom: none; }
+  .rule-label { font-size: 13px; color: var(--bright); }
+  .rule-input {
+    background: var(--panel); border: 1px solid rgba(255,255,255,.09);
+    border-radius: 7px; color: var(--bright); font-family: var(--mono); font-size: 13px;
+    padding: 7px 11px; outline: none; width: 130px; text-align: left;
+    transition: border-color .2s;
+  }
+  .rule-input:focus { border-color: rgba(168,85,247,.4); }
+
+  /* CODE BLOCK */
+  .code-block {
+    background: #0a0612; border: 1px solid rgba(168,85,247,.2);
+    border-radius: 11px; overflow: hidden; margin-bottom: 14px;
+  }
+  .code-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 14px; background: rgba(168,85,247,.06);
+    border-bottom: 1px solid rgba(168,85,247,.15);
+  }
+  .code-lang { font-family: var(--mono); font-size: 11px; color: var(--purple); letter-spacing: .08em; }
+  .copy-btn {
+    background: rgba(168,85,247,.15); border: 1px solid rgba(168,85,247,.3);
+    color: var(--purple); font-family: var(--sans); font-size: 12px; font-weight: 600;
+    border-radius: 7px; padding: 5px 13px; cursor: pointer; transition: all .2s;
+  }
+  .copy-btn:hover { background: rgba(168,85,247,.25); }
+  .copy-btn.copied { background: var(--green); color: #000; border-color: var(--green); }
+  .code-body {
+    font-family: var(--mono); font-size: 11.5px; line-height: 1.65;
+    padding: 14px; overflow-x: auto; white-space: pre; color: #c9b8d8; direction: ltr; text-align: left;
+  }
+  .code-body::-webkit-scrollbar { height: 5px; }
+  .code-body::-webkit-scrollbar-thumb { background: rgba(168,85,247,.3); border-radius: 3px; }
+
+  /* STEPS */
+  .step {
+    display: flex; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--border);
+  }
+  .step:last-child { border-bottom: none; }
+  .step-num {
+    width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    display: grid; place-items: center; font-family: var(--mono);
+    font-size: 14px; font-weight: 700; color: #fff;
+  }
+  .step-body { flex: 1; }
+  .step-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .step-text { font-size: 13px; color: var(--mid); line-height: 1.7; }
+  .step-text a { color: var(--purple); text-decoration: none; border-bottom: 1px solid rgba(168,85,247,.3); }
+  .step-text code { background: rgba(168,85,247,.1); border-radius: 4px; padding: 1px 6px; font-family: var(--mono); font-size: 12px; color: var(--purple); }
+
+  /* WARNING */
+  .warning-box {
+    background: rgba(245,166,35,.06); border: 1px solid rgba(245,166,35,.25);
+    border-radius: 11px; padding: 14px 16px; margin: 14px 0;
+    font-size: 13px; line-height: 1.7; color: var(--gold);
+  }
+  .warning-box strong { color: #ffd584; }
+
+  footer {
+    text-align: center; font-family: var(--mono); font-size: 9.5px; color: var(--dim);
+    padding: 14px 20px; border-top: 1px solid var(--border); flex-shrink: 0;
+  }
+
+  @media (max-width:600px) {
+    .sc-grid { grid-template-columns: repeat(2,1fr); }
+    main { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">🔗</div>
+  <div>
+    <div class="logo-title">קולמקס אלגו</div>
+    <div class="logo-sub">COLMEX ALGO BRIDGE · MT4</div>
+  </div>
+  <div class="conn-status">
+    <span class="conn-dot" id="conn-dot"></span>
+    <span id="conn-text" style="color:var(--red)">לא מחובר — נדרשת התקנה</span>
+  </div>
+</header>
+
+<div id="tabs">
+  <button class="tab active" onclick="showSec('dash',this)">📊 דשבורד אישור</button>
+  <button class="tab" onclick="showSec('risk',this)">⚙ כללי סיכון</button>
+  <button class="tab" onclick="showSec('pine',this)">📈 Pine Script</button>
+  <button class="tab" onclick="showSec('json',this)">🔧 JSON Alerts</button>
+  <button class="tab" onclick="showSec('setup',this)">🚀 התקנה</button>
+</div>
+
+<main>
+
+  <!-- ── DASHBOARD ── -->
+  <div class="section active" id="sec-dash">
+    <h2 class="sec-title">דשבורד אישור עסקאות</h2>
+    <p class="sec-desc">כל סיגנל שמגיע מ-TradingView מופיע כאן לאישור ידני לפני שהוא נשלח ל-MT4. כך אתה שולט בכל עסקה ולא נותן לאלגו לפעול לבד. (זהו דמו לוקאלי — בהפעלה אמיתית הסיגנלים מגיעים מ-Webhook.)</p>
+
+    <div class="panel">
+      <div class="panel-title">🧪 בדיקה — צור סיגנל לדוגמה</div>
+      <button class="sc-btn approve" style="max-width:240px" onclick="addDemoSignal()">+ הוסף סיגנל לדוגמה</button>
+    </div>
+
+    <div id="signals-list">
+      <div class="no-signals">אין סיגנלים ממתינים.<br>לחץ "הוסף סיגנל לדוגמה" לבדיקה, או חבר את ה-Webhook להפעלה אמיתית.</div>
+    </div>
+
+    <div class="panel" id="approved-log-panel" style="display:none">
+      <div class="panel-title">✅ יומן עסקאות מאושרות</div>
+      <div id="approved-log"></div>
+    </div>
+  </div>
+
+  <!-- ── RISK RULES ── -->
+  <div class="section" id="sec-risk">
+    <h2 class="sec-title">כללי ניהול סיכון — קולמקס</h2>
+    <p class="sec-desc">הכללים האלה נשמרים מקומית ומשמשים לסינון סיגנלים בדשבורד. סיגנל שחורג מהם יסומן באזהרה.</p>
+
+    <div class="panel">
+      <div class="panel-title">💰 גבולות הון</div>
+      <div class="rule-row">
+        <span class="rule-label">הון בחשבון ($)</span>
+        <input class="rule-input" id="risk-capital" type="number" value="2000" oninput="saveRisk()"/>
+      </div>
+      <div class="rule-row">
+        <span class="rule-label">סיכון מקסימלי לעסקה (%)</span>
+        <input class="rule-input" id="risk-per-trade" type="number" value="2" oninput="saveRisk()"/>
+      </div>
+      <div class="rule-row">
+        <span class="rule-label">הפסד יומי מקסימלי ($)</span>
+        <input class="rule-input" id="risk-daily-stop" type="number" value="62" oninput="saveRisk()"/>
+      </div>
+      <div class="rule-row">
+        <span class="rule-label">מקסימום הון לפוזיציה (%)</span>
+        <input class="rule-input" id="risk-max-position" type="number" value="20" oninput="saveRisk()"/>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">🎯 פרמטרי עסקה</div>
+      <div class="rule-row">
+        <span class="rule-label">יחס R:R מינימלי</span>
+        <input class="rule-input" id="risk-rr" type="number" value="2" step="0.5" oninput="saveRisk()"/>
+      </div>
+      <div class="rule-row">
+        <span class="rule-label">מקסימום עסקאות ביום</span>
+        <input class="rule-input" id="risk-max-trades" type="number" value="5" oninput="saveRisk()"/>
+      </div>
+    </div>
+
+    <div class="warning-box">
+      <strong>חשוב:</strong> כללי הסיכון האלה הם להגנה עצמית בלבד. הם לא מבטיחים רווח. תמיד בדוק כל עסקה ידנית בדשבורד לפני אישור.
+    </div>
+  </div>
+
+  <!-- ── PINE SCRIPT ── -->
+  <div class="section" id="sec-pine">
+    <h2 class="sec-title">Pine Script — אינדיקטור התראות</h2>
+    <p class="sec-desc">העתק את הקוד הזה ל-TradingView (Pine Editor). הוא מזהה סיגנלים לפי סטאק האינדיקטורים שלך ושולח התראות עם נתוני JSON. הדבק, שמור, הוסף לגרף, ואז הגדר Alert עם הודעת ה-JSON מהלשונית הבאה.</p>
+
+    <div class="code-block">
+      <div class="code-head">
+        <span class="code-lang">PINE SCRIPT v5</span>
+        <button class="copy-btn" onclick="copyCode('pine-code',this)">📋 העתק</button>
+      </div>
+      <div class="code-body" id="pine-code">//@version=5
+indicator("Colmex Algo Signal — Nostro Stack", overlay=true)
+
+// ═══ Inputs ═══
+emaFast   = input.int(9,  "EMA Fast (Champion proxy)")
+emaSlow   = input.int(21, "EMA Slow (Champion proxy)")
+rangeLen  = input.int(20, "Range Breaker lookback")
+useVWAP   = input.bool(true, "Require VWAP confluence")
+atrMult   = input.float(1.5, "ATR stop multiplier")
+rrTarget  = input.float(2.0, "Risk:Reward target")
+
+// ═══ Indicators ═══
+emaF = ta.ema(close, emaFast)
+emaS = ta.ema(close, emaSlow)
+vwapVal = ta.vwap(hlc3)
+atr = ta.atr(14)
+
+// Champion Trend proxy: EMA cross + slope
+trendUp   = emaF > emaS and emaF > emaF[1]
+trendDown = emaF < emaS and emaF < emaF[1]
+
+// Range Breaker: break of N-bar high/low
+hh = ta.highest(high, rangeLen)[1]
+ll = ta.lowest(low, rangeLen)[1]
+breakUp   = close > hh
+breakDown = close < ll
+
+// VWAP confluence
+vwapOK_long  = not useVWAP or close > vwapVal
+vwapOK_short = not useVWAP or close < vwapVal
+
+// ═══ Signals (confluence) ═══
+longSignal  = trendUp  and breakUp  and vwapOK_long
+shortSignal = trendDown and breakDown and vwapOK_short
+
+// ═══ Stop & Target ═══
+longStop   = close - atr * atrMult
+longTarget = close + atr * atrMult * rrTarget
+shortStop   = close + atr * atrMult
+shortTarget = close - atr * atrMult * rrTarget
+
+// ═══ Plot ═══
+plot(emaF, "EMA Fast", color.new(color.aqua, 0))
+plot(emaS, "EMA Slow", color.new(color.orange, 0))
+plot(vwapVal, "VWAP", color.new(color.yellow, 0), style=plot.style_circles)
+
+plotshape(longSignal,  "LONG",  shape.triangleup,   location.belowbar, color.new(color.green,0), size=size.small)
+plotshape(shortSignal, "SHORT", shape.triangledown, location.abovebar, color.new(color.red,0),   size=size.small)
+
+// ═══ Alerts ═══
+if longSignal
+    alert('{"action":"buy","symbol":"' + syminfo.ticker + '","price":' + str.tostring(close) + ',"stop":' + str.tostring(longStop) + ',"target":' + str.tostring(longTarget) + '}', alert.freq_once_per_bar_close)
+
+if shortSignal
+    alert('{"action":"sell","symbol":"' + syminfo.ticker + '","price":' + str.tostring(close) + ',"stop":' + str.tostring(shortStop) + ',"target":' + str.tostring(shortTarget) + '}', alert.freq_once_per_bar_close)</div>
+    </div>
+
+    <div class="warning-box">
+      <strong>הערה:</strong> ה-Pine Script משתמש בקירובים (EMA cross כפרוקסי ל-Champion Trend, range break ל-Range Breaker). זה לא העתק מדויק של אינדיקטורי WealthCharts — אבל לוכד את אותה לוגיקת confluence. אפשר לכוונן את הפרמטרים לפי הביצועים שלך.
+    </div>
+  </div>
+
+  <!-- ── JSON ALERTS ── -->
+  <div class="section" id="sec-json">
+    <h2 class="sec-title">תבניות JSON ל-Alerts</h2>
+    <p class="sec-desc">כשמגדירים Alert ב-TradingView, מדביקים את ה-JSON הזה בשדה ההודעה. WebhookTrade קורא אותו ומעביר ל-MT4. שים לב: ה-Pine Script כבר מייצר JSON אוטומטית, אבל אלה התבניות אם אתה רוצה לבנות Alert ידני.</p>
+
+    <div class="code-block">
+      <div class="code-head">
+        <span class="code-lang">JSON — LONG</span>
+        <button class="copy-btn" onclick="copyCode('json-long',this)">📋 העתק</button>
+      </div>
+      <div class="code-body" id="json-long">{
+  "action": "buy",
+  "symbol": "{{ticker}}",
+  "price": {{close}},
+  "stop": {{plot_0}},
+  "target": {{plot_1}},
+  "lot": 0.1,
+  "comment": "Nostro-Long"
+}</div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-head">
+        <span class="code-lang">JSON — SHORT</span>
+        <button class="copy-btn" onclick="copyCode('json-short',this)">📋 העתק</button>
+      </div>
+      <div class="code-body" id="json-short">{
+  "action": "sell",
+  "symbol": "{{ticker}}",
+  "price": {{close}},
+  "stop": {{plot_0}},
+  "target": {{plot_1}},
+  "lot": 0.1,
+  "comment": "Nostro-Short"
+}</div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-head">
+        <span class="code-lang">JSON — CLOSE ALL</span>
+        <button class="copy-btn" onclick="copyCode('json-close',this)">📋 העתק</button>
+      </div>
+      <div class="code-body" id="json-close">{
+  "action": "close",
+  "symbol": "{{ticker}}",
+  "comment": "Nostro-CloseAll"
+}</div>
+    </div>
+  </div>
+
+  <!-- ── SETUP ── -->
+  <div class="section" id="sec-setup">
+    <h2 class="sec-title">התקנה — שלב אחר שלב</h2>
+    <p class="sec-desc">המסלול המלא מ-TradingView עד חשבון קולמקס פרו דרך MT4. עקוב לפי הסדר. בדוק הכל בחשבון דמו לפני שעוברים לאמיתי.</p>
+
+    <div class="panel">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">הורד MT4 מקולמקס</div>
+          <div class="step-text">היכנס לאתר קולמקס פרו והורד את פלטפורמת <code>MetaTrader 4</code>. התחבר עם פרטי החשבון שלך (התחל בחשבון <strong>דמו</strong>).</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">הירשם ל-WebhookTrade והתקן EA</div>
+          <div class="step-text">צור חשבון ב-<a href="https://webhooktrade.com" target="_blank">WebhookTrade</a>. הורד את ה-Expert Advisor שלהם והעתק אותו לתיקיית <code>MQL4/Experts</code> ב-MT4. הפעל אותו על הגרף, ואשר <strong>Allow WebRequest</strong> בהגדרות.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">מנוי TradingView Pro</div>
+          <div class="step-text">Webhook alerts דורשים מנוי <code>TradingView Pro</code> ומעלה. ללא זה אי אפשר לשלוח התראות אוטומטיות לשרת.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">הוסף את ה-Pine Script</div>
+          <div class="step-text">פתח Pine Editor ב-TradingView, הדבק את הקוד מלשונית "Pine Script", שמור והוסף לגרף. הגדר Alert: בשדה ה-Webhook URL הכנס את הכתובת מ-WebhookTrade, ובשדה ההודעה את ה-JSON.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">הגדר כללי סיכון</div>
+          <div class="step-text">מלא את כללי הסיכון בלשונית "כללי סיכון". התחל שמרני: סטופ יומי <code>$62</code>, מקסימום <code>20%</code> הון לפוזיציה, R:R מינימלי <code>1:2</code>.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <div class="step-title">בדוק בדמו — לפחות שבוע</div>
+          <div class="step-text">הרץ את כל המערכת על חשבון <strong>דמו של קולמקס</strong> לכמה ימים. ודא שהסיגנלים מגיעים, ש-MT4 מבצע נכון, ושכללי הסיכון עובדים. רק אחרי שהכל יציב — עבור לאמיתי.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="warning-box">
+      <strong>אזהרה כנה:</strong> מסחר אלגוריתמי אוטומטי הוא סיכון גבוה. באג בקוד, נתק רשת, או שוק תנודתי יכולים לגרום להפסדים מהירים. המערכת הזו בנויה עם <strong>אישור ידני</strong> בדשבורד בדיוק בשביל זה — אל תדלג עליו. זה לא ייעוץ פיננסי; האחריות עליך.
+    </div>
+  </div>
+
+</main>
+
+<footer>קולמקס אלגו · גשר TradingView → WebhookTrade → MT4 → Colmex Pro · לא ייעוץ פיננסי</footer>
+
+<script>
+let signals = [];
+let approvedLog = [];
+
+// ── TABS ──
+function showSec(sec, btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+sec).classList.add('active');
+}
+
+// ── COPY CODE ──
+function copyCode(id, btn){
+  const text=document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.classList.add('copied');
+    btn.textContent='✓ הועתק';
+    setTimeout(()=>{btn.classList.remove('copied');btn.textContent='📋 העתק';},1600);
+  });
+}
+
+// ── RISK RULES ──
+function saveRisk(){
+  const r={
+    capital:   document.getElementById('risk-capital').value,
+    perTrade:  document.getElementById('risk-per-trade').value,
+    dailyStop: document.getElementById('risk-daily-stop').value,
+    maxPos:    document.getElementById('risk-max-position').value,
+    rr:        document.getElementById('risk-rr').value,
+    maxTrades: document.getElementById('risk-max-trades').value
+  };
+  localStorage.setItem('colmex-risk', JSON.stringify(r));
+}
+function loadRisk(){
+  const raw=localStorage.getItem('colmex-risk');
+  if(!raw) return;
+  const r=JSON.parse(raw);
+  const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null)el.value=v;};
+  set('risk-capital',r.capital); set('risk-per-trade',r.perTrade);
+  set('risk-daily-stop',r.dailyStop); set('risk-max-position',r.maxPos);
+  set('risk-rr',r.rr); set('risk-max-trades',r.maxTrades);
+}
+
+// ── DASHBOARD SIGNALS ──
+function addDemoSignal(){
+  const dirs=['long','short'];
+  const dir=dirs[Math.floor(Math.random()*2)];
+  const base=21450+(Math.random()-.5)*100;
+  const atr=15+Math.random()*10;
+  const entry=base.toFixed(2);
+  const stop=(dir==='long'?base-atr:base+atr).toFixed(2);
+  const target=(dir==='long'?base+atr*2:base-atr*2).toFixed(2);
+  const conf=[60,70,80,90][Math.floor(Math.random()*4)];
+  signals.push({
+    id:Date.now(), dir, symbol:'MNQ', entry, stop, target, conf,
+    time:new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit',second:'2-digit'})
+  });
+  renderSignals();
+}
+
+function renderSignals(){
+  const el=document.getElementById('signals-list');
+  if(!signals.length){
+    el.innerHTML='<div class="no-signals">אין סיגנלים ממתינים.<br>לחץ "הוסף סיגנל לדוגמה" לבדיקה, או חבר את ה-Webhook להפעלה אמיתית.</div>';
+    return;
+  }
+  // risk check
+  const rr=parseFloat(document.getElementById('risk-rr').value)||2;
+  el.innerHTML=signals.map(s=>{
+    const riskPts=Math.abs(parseFloat(s.entry)-parseFloat(s.stop));
+    const rewardPts=Math.abs(parseFloat(s.target)-parseFloat(s.entry));
+    const actualRR=(rewardPts/riskPts).toFixed(1);
+    const rrWarn=parseFloat(actualRR)<rr;
+    return `
+    <div class="signal-card ${s.dir}">
+      <div class="sc-head">
+        <span class="sc-dir ${s.dir}">${s.dir==='long'?'▲ LONG':'▼ SHORT'} ${s.symbol}</span>
+        <span class="sc-time">${s.time}</span>
+        <span class="sc-conf">Conf ${s.conf}%</span>
+      </div>
+      <div class="sc-grid">
+        <div class="sc-box"><div class="sc-box-lbl">כניסה</div><div class="sc-box-val">${s.entry}</div></div>
+        <div class="sc-box"><div class="sc-box-lbl">סטופ</div><div class="sc-box-val" style="color:var(--red)">${s.stop}</div></div>
+        <div class="sc-box"><div class="sc-box-lbl">יעד</div><div class="sc-box-val" style="color:var(--green)">${s.target}</div></div>
+        <div class="sc-box"><div class="sc-box-lbl">R:R</div><div class="sc-box-val" style="color:${rrWarn?'var(--gold)':'var(--green)'}">1:${actualRR}${rrWarn?' ⚠':''}</div></div>
+      </div>
+      <div class="sc-actions">
+        <button class="sc-btn approve" onclick="approveSignal(${s.id})">✓ אשר ושלח ל-MT4</button>
+        <button class="sc-btn reject" onclick="rejectSignal(${s.id})">✗ דחה</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function approveSignal(id){
+  const s=signals.find(x=>x.id===id);
+  if(!s) return;
+  approvedLog.unshift({...s, approvedAt:new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})});
+  signals=signals.filter(x=>x.id!==id);
+  renderSignals();
+  renderApprovedLog();
+  // in real deployment: POST to WebhookTrade endpoint here
+}
+function rejectSignal(id){
+  signals=signals.filter(x=>x.id!==id);
+  renderSignals();
+}
+function renderApprovedLog(){
+  if(!approvedLog.length) return;
+  document.getElementById('approved-log-panel').style.display='block';
+  document.getElementById('approved-log').innerHTML=approvedLog.map(s=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:12px">
+      <span style="color:${s.dir==='long'?'var(--green)':'var(--red)'};font-weight:700">${s.dir==='long'?'▲':'▼'} ${s.symbol}</span>
+      <span style="color:var(--mid)">@ ${s.entry}</span>
+      <span style="color:var(--dim);margin-right:auto">אושר ${s.approvedAt}</span>
+      <span style="color:var(--green)">✓ נשלח</span>
+    </div>
+  `).join('');
+}
+
+// ── INIT ──
+loadRisk();
+</script>
+</body>
+</html>

@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>תדריך בוקר | נוסטרו</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;700&family=Noto+Sans+Hebrew:wght@300;400;600;700;800&display=swap');
+
+  :root {
+    --bg:      #05070f;
+    --panel:   #090d1a;
+    --card:    #0d1220;
+    --border:  rgba(255,255,255,0.06);
+    --green:   #00d4aa;
+    --gold:    #f5a623;
+    --red:     #ff4560;
+    --blue:    #4a9eff;
+    --dim:     #3a4a5a;
+    --mid:     #7a8a9a;
+    --bright:  #ccddeeff;
+    --mono:    'IBM Plex Mono', monospace;
+    --sans:    'Noto Sans Hebrew', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--bright);
+    font-family: var(--sans);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* scanline overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 3px,
+      rgba(0,212,170,0.008) 3px, rgba(0,212,170,0.008) 4px
+    );
+    pointer-events: none; z-index: 9999;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 24px;
+    background: rgba(0,0,0,0.55);
+    border-bottom: 1px solid rgba(0,212,170,0.14);
+    backdrop-filter: blur(12px);
+    flex-shrink: 0;
+  }
+
+  .logo-mark {
+    width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0;
+    background: linear-gradient(135deg, rgba(0,212,170,0.18), rgba(0,212,170,0.04));
+    border: 1px solid rgba(0,212,170,0.28);
+    display: grid; place-items: center; font-size: 20px;
+  }
+
+  .logo-text { flex: 1; }
+  .logo-title { font-family: var(--mono); font-size: 14px; font-weight: 700; color: #fff; letter-spacing: .05em; }
+  .logo-sub   { font-family: var(--mono); font-size: 10px; color: var(--green); opacity: .65; letter-spacing: .12em; margin-top: 2px; }
+
+  .header-clock {
+    font-family: var(--mono); font-size: 11px; color: var(--mid);
+    text-align: left; flex-shrink: 0;
+  }
+  .clock-il  { font-size: 18px; font-weight: 700; color: #fff; line-height: 1; }
+  .clock-et  { font-size: 10px; color: var(--dim); margin-top: 2px; }
+  .session-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: .08em;
+    border: 1px solid; border-radius: 5px; padding: 3px 8px; margin-top: 4px;
+  }
+  .session-badge.open   { color: var(--green); border-color: rgba(0,212,170,.3); background: rgba(0,212,170,.07); }
+  .session-badge.pre    { color: var(--gold);  border-color: rgba(245,166,35,.3); background: rgba(245,166,35,.07); }
+  .session-badge.closed { color: var(--dim);   border-color: var(--dim); background: transparent; }
+
+  /* ── APEX STATUS BAR ── */
+  #apex-bar {
+    display: flex; gap: 10px; padding: 8px 24px;
+    background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .apex-chip {
+    font-family: var(--mono); font-size: 10px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 10px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .apex-chip-label { color: var(--dim); letter-spacing: .08em; font-size: 9px; }
+  .apex-chip-val   { color: #fff; font-weight: 700; font-size: 12px; }
+  .apex-chip-val.green { color: var(--green); }
+  .apex-chip-val.gold  { color: var(--gold); }
+  .apex-chip-val.red   { color: var(--red); }
+
+  /* progress bar inside chip */
+  .mini-bar { height: 3px; background: rgba(255,255,255,.06); border-radius: 2px; margin-top: 4px; overflow: hidden; width: 80px; }
+  .mini-fill { height: 100%; border-radius: 2px; transition: width .4s; }
+
+  /* ── MAIN CONTENT ── */
+  main {
+    flex: 1; display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 0; overflow: hidden;
+  }
+
+  /* left: briefing output */
+  #briefing-col {
+    display: flex; flex-direction: column; overflow: hidden;
+    border-left: 1px solid var(--border);
+  }
+
+  #briefing-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px; border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  #briefing-header h2 { font-family: var(--mono); font-size: 12px; color: var(--green); letter-spacing: .1em; font-weight: 500; }
+
+  #run-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--green); color: #000;
+    border: none; border-radius: 10px; padding: 9px 20px;
+    font-family: var(--sans); font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all .2s; flex-shrink: 0;
+  }
+  #run-btn:hover { background: #00f0c4; transform: translateY(-1px); }
+  #run-btn:disabled { background: var(--dim); color: var(--mid); cursor: not-allowed; transform: none; }
+  #run-btn .spinner {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid rgba(0,0,0,.3); border-top-color: #000;
+    animation: spin .7s linear infinite;
+  }
+
+  #briefing-scroll {
+    flex: 1; overflow-y: auto; padding: 20px;
+  }
+  #briefing-scroll::-webkit-scrollbar { width: 3px; }
+  #briefing-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 2px; }
+
+  /* empty state */
+  #empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 100%; gap: 14px; padding: 40px;
+  }
+  #empty-state .es-icon { font-size: 48px; }
+  #empty-state .es-title { font-family: var(--mono); font-size: 15px; color: var(--mid); letter-spacing: .08em; }
+  #empty-state .es-sub { font-size: 12px; color: var(--dim); text-align: center; line-height: 1.7; max-width: 300px; }
+
+  /* briefing content formatting */
+  .briefing-content { font-family: var(--mono); font-size: 12px; line-height: 1.8; }
+  .bf-section    { margin-bottom: 18px; }
+  .bf-head       { color: var(--green); font-weight: 700; font-size: 11px; letter-spacing: .12em; border-bottom: 1px solid rgba(0,212,170,.15); padding-bottom: 5px; margin-bottom: 10px; }
+  .bf-line       { color: #ccc; display: block; }
+  .bf-ok         { color: #7fffcc; display: block; }
+  .bf-warn       { color: var(--gold); display: block; }
+  .bf-danger     { color: var(--red); display: block; }
+  .bf-num        { color: var(--gold); font-weight: 700; display: block; }
+  .bf-sep        { color: rgba(0,212,170,.2); display: block; }
+  .bf-verdict    {
+    margin-top: 16px; padding: 14px; border-radius: 12px;
+    border: 1px solid; font-weight: 700; font-size: 13px; text-align: center; letter-spacing: .06em;
+  }
+  .bf-verdict.trade  { background: rgba(0,212,170,.08); border-color: rgba(0,212,170,.3); color: var(--green); }
+  .bf-verdict.wait   { background: rgba(245,166,35,.08); border-color: rgba(245,166,35,.3); color: var(--gold); }
+  .bf-verdict.avoid  { background: rgba(255,69,96,.08);  border-color: rgba(255,69,96,.3);  color: var(--red); }
+
+  .typing-row { display: flex; gap: 5px; align-items: center; padding: 12px 0; }
+  .typing-row span {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green); animation: bounce .85s ease-in-out infinite;
+  }
+  .typing-row span:nth-child(2){ animation-delay:.15s; }
+  .typing-row span:nth-child(3){ animation-delay:.30s; }
+
+  /* right: parameters panel */
+  #params-col {
+    display: flex; flex-direction: column; overflow-y: auto; padding: 16px;
+    background: rgba(0,0,0,.2); gap: 12px;
+  }
+  #params-col::-webkit-scrollbar { width: 2px; }
+  #params-col::-webkit-scrollbar-thumb { background: rgba(255,255,255,.07); }
+
+  .params-title { font-family: var(--mono); font-size: 9px; color: var(--dim); letter-spacing: .12em; text-transform: uppercase; padding: 2px 0; }
+
+  .param-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px;
+  }
+  .param-label { font-family: var(--mono); font-size: 9px; color: var(--dim); letter-spacing: .1em; margin-bottom: 6px; }
+  .param-input, .param-select {
+    width: 100%; background: var(--panel); border: 1px solid rgba(255,255,255,.09);
+    border-radius: 7px; color: var(--bright); font-family: var(--mono); font-size: 13px;
+    padding: 8px 10px; outline: none; transition: border-color .2s;
+  }
+  .param-input:focus, .param-select:focus { border-color: rgba(0,212,170,.4); }
+  .param-select option { background: var(--panel); }
+
+  .param-row { display: flex; gap: 8px; }
+  .param-row .param-card { flex: 1; }
+
+  /* checkboxes */
+  .check-list { display: flex; flex-direction: column; gap: 7px; }
+  .check-item { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .check-item input[type=checkbox] { accent-color: var(--green); width: 14px; height: 14px; cursor: pointer; }
+  .check-item span { font-size: 12px; color: var(--mid); }
+
+  /* history */
+  #history-list { display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; }
+  #history-list::-webkit-scrollbar { width: 2px; }
+  #history-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.07); }
+  .hist-item {
+    background: rgba(255,255,255,.02); border: 1px solid var(--border);
+    border-radius: 7px; padding: 7px 10px;
+    font-family: var(--mono); font-size: 10px; cursor: pointer; transition: background .15s;
+  }
+  .hist-item:hover { background: rgba(0,212,170,.05); }
+  .hist-date { color: var(--dim); font-size: 9px; }
+  .hist-verdict { font-weight: 700; }
+  .hist-verdict.trade  { color: var(--green); }
+  .hist-verdict.wait   { color: var(--gold); }
+  .hist-verdict.avoid  { color: var(--red); }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center; font-family: var(--mono); font-size: 9.5px; color: var(--dim);
+    padding: 7px 20px 10px; border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  @keyframes spin   { to { transform: rotate(360deg); } }
+  @keyframes bounce { 0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);} }
+
+  @media (max-width:700px) {
+    main { grid-template-columns: 1fr; }
+    #params-col { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header>
+  <div class="logo-mark">🌅</div>
+  <div class="logo-text">
+    <div class="logo-title">תדריך בוקר</div>
+    <div class="logo-sub">MORNING BRIEFING · NOSTRO</div>
+  </div>
+  <div class="header-clock">
+    <div class="clock-il" id="clock-il">--:--:--</div>
+    <div class="clock-et" id="clock-et">ET --:--</div>
+    <div id="session-badge" class="session-badge closed">⏸ שוק סגור</div>
+  </div>
+</header>
+
+<!-- ── APEX STATUS ── -->
+<div id="apex-bar">
+  <div class="apex-chip">
+    <span class="apex-chip-label">ACCOUNT</span>
+    <span class="apex-chip-val">Apex 50K</span>
+  </div>
+  <div class="apex-chip">
+    <span class="apex-chip-label">PROFIT TARGET</span>
+    <span class="apex-chip-val green">$3,000</span>
+  </div>
+  <div class="apex-chip" id="chip-dd">
+    <span class="apex-chip-label">TRAILING DD</span>
+    <span class="apex-chip-val gold" id="dd-val">$2,500</span>
+    <div class="mini-bar"><div class="mini-fill" id="dd-fill" style="width:0%;background:var(--green)"></div></div>
+  </div>
+  <div class="apex-chip" id="chip-pnl">
+    <span class="apex-chip-label">P&L YTD</span>
+    <span class="apex-chip-val" id="pnl-val">—</span>
+  </div>
+  <div class="apex-chip">
+    <span class="apex-chip-label">TRADING DAYS</span>
+    <span class="apex-chip-val" id="days-val">—</span>
+  </div>
+  <div class="apex-chip">
+    <span class="apex-chip-label">CONSISTENCY RULE</span>
+    <span class="apex-chip-val">30% MAX / יום</span>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<main>
+
+  <!-- LEFT: briefing output -->
+  <div id="briefing-col">
+    <div id="briefing-header">
+      <h2>📋 תדריך יומי · DAILY BRIEFING</h2>
+      <button id="run-btn" onclick="runBriefing()">🌅 הפעל תדריך</button>
+    </div>
+    <div id="briefing-scroll">
+      <div id="empty-state">
+        <div class="es-icon">🌅</div>
+        <div class="es-title">MORNING BRIEFING</div>
+        <div class="es-sub">לחץ "הפעל תדריך" לקבלת ניתוח שוק מלא לפני הפגישה:<br>מאקרו · NQ · Apex status · המלצת יום</div>
+      </div>
+      <div id="briefing-output" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: parameters -->
+  <div id="params-col">
+
+    <div class="params-title">⚙ הגדרות חשבון Apex</div>
+
+    <div class="param-row">
+      <div class="param-card">
+        <div class="param-label">P&L נוכחי ($)</div>
+        <input class="param-input" id="inp-pnl" type="number" placeholder="0" oninput="updateApex()"/>
+      </div>
+      <div class="param-card">
+        <div class="param-label">ימי מסחר</div>
+        <input class="param-input" id="inp-days" type="number" placeholder="0" min="0" max="30" oninput="updateApex()"/>
+      </div>
+    </div>
+
+    <div class="param-card">
+      <div class="param-label">מכשיר עיקרי להיום</div>
+      <select class="param-select" id="inp-inst">
+        <option value="MNQ">MNQ — מיקרו נאסדק ($2/נקודה)</option>
+        <option value="NQ">NQ — נאסדק ($20/נקודה)</option>
+        <option value="MGC">MGC — מיקרו זהב ($10/נקודה)</option>
+        <option value="GC">GC — זהב ($100/נקודה)</option>
+      </select>
+    </div>
+
+    <div class="param-card">
+      <div class="param-label">מספר חוזים מתוכנן</div>
+      <select class="param-select" id="inp-contracts">
+        <option value="1">1 חוזה (שמרני — מומלץ)</option>
+        <option value="2">2 חוזים</option>
+        <option value="3">3 חוזים</option>
+      </select>
+    </div>
+
+    <div class="params-title" style="margin-top:4px">📊 אינדיקטורים — WealthCharts</div>
+
+    <div class="param-card">
+      <div class="param-label">מה האינדיקטורים מראים היום?</div>
+      <div class="check-list" id="ind-checks">
+        <label class="check-item"><input type="checkbox" id="ind-ct"> <span>Champion Trend — כיוון ברור</span></label>
+        <label class="check-item"><input type="checkbox" id="ind-vwap"> <span>מחיר מעל VWAP</span></label>
+        <label class="check-item"><input type="checkbox" id="ind-sd"> <span>Supply/Demand — אזור תמיכה ברור</span></label>
+        <label class="check-item"><input type="checkbox" id="ind-ws"> <span>WealthSignal — סיגנל ירוק</span></label>
+        <label class="check-item"><input type="checkbox" id="ind-rb"> <span>Range Breaker — פריצה מאושרת</span></label>
+      </div>
+    </div>
+
+    <div class="params-title" style="margin-top:4px">📰 הקשר יומי</div>
+
+    <div class="param-card">
+      <div class="param-label">אירועי מאקרו ידועים (CPI, FOMC וכד')</div>
+      <input class="param-input" id="inp-macro" type="text" placeholder="לדוגמה: CPI היום 14:30"/>
+    </div>
+
+    <div class="param-card">
+      <div class="param-label">הערות אישיות לתדריך</div>
+      <input class="param-input" id="inp-notes" type="text" placeholder="כל מה שרלוונטי ליום הזה..."/>
+    </div>
+
+    <div class="params-title" style="margin-top:4px">📂 היסטוריה</div>
+    <div id="history-list">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--dim);padding:6px 0">אין היסטוריה עדיין</div>
+    </div>
+
+  </div>
+</main>
+
+<footer>ניתוח אינפורמטיבי בלבד · לא ייעוץ השקעות · כל ההחלטות ואחריותן עליך</footer>
+
+<script>
+// ── CLOCK ──
+function updateClock(){
+  const now=new Date();
+  const il=now.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Jerusalem'});
+  const et=now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/New_York'});
+  document.getElementById('clock-il').textContent=il;
+  document.getElementById('clock-et').textContent='ET '+et;
+
+  // session detection (Israel time = ET+7 normally, check by ET hour)
+  const etH=parseInt(now.toLocaleString('en-US',{hour:'numeric',hour12:false,timeZone:'America/New_York'}));
+  const etM=now.toLocaleTimeString('en-US',{minute:'2-digit',timeZone:'America/New_York'});
+  const etMin=etH*60+parseInt(etM);
+  const b=document.getElementById('session-badge');
+  if(etMin>=570&&etMin<960){  // 9:30–16:00 ET
+    b.className='session-badge open'; b.textContent='● שוק פתוח';
+  } else if(etMin>=240&&etMin<570){ // 4:00–9:30 ET
+    b.className='session-badge pre'; b.textContent='◌ פרה-מרקט';
+  } else {
+    b.className='session-badge closed'; b.textContent='⏸ שוק סגור';
+  }
+}
+setInterval(updateClock,1000); updateClock();
+
+// ── APEX STATUS UPDATE ──
+function updateApex(){
+  const pnl=parseFloat(document.getElementById('inp-pnl').value)||0;
+  const days=parseInt(document.getElementById('inp-days').value)||0;
+  document.getElementById('pnl-val').textContent = (pnl>=0?'+':'')+pnl.toFixed(0)+'$';
+  document.getElementById('pnl-val').className='apex-chip-val '+(pnl>=0?'green':'red');
+  document.getElementById('days-val').textContent = days+' / 7+';
+  // trailing drawdown: starts at $2500, locks when profit reaches $2600
+  const ddLock = pnl >= 2600;
+  const ddRemain = ddLock ? 2500 : Math.max(0, 2500 - Math.max(0,pnl));
+  document.getElementById('dd-val').textContent = '$'+ddRemain.toFixed(0)+(ddLock?' (נעול)':'');
+  const fillPct = ddLock ? 100 : ((2500-ddRemain)/2500*100);
+  const fill=document.getElementById('dd-fill');
+  fill.style.width=fillPct+'%';
+  fill.style.background = fillPct>70?'var(--red)':fillPct>40?'var(--gold)':'var(--green)';
+}
+
+// ── HISTORY ──
+function loadHistory(){
+  const raw=localStorage.getItem('briefing-history');
+  if(!raw) return;
+  const hist=JSON.parse(raw);
+  if(!hist.length) return;
+  const el=document.getElementById('history-list');
+  el.innerHTML=hist.slice(-5).reverse().map(h=>`
+    <div class="hist-item" onclick="loadBriefing(${JSON.stringify(JSON.stringify(h))})">
+      <div class="hist-date">${h.date}</div>
+      <div class="hist-verdict ${h.verdict}">${h.verdictText}</div>
+    </div>
+  `).join('');
+}
+
+function loadBriefing(hStr){
+  const h=JSON.parse(hStr);
+  document.getElementById('empty-state').style.display='none';
+  document.getElementById('briefing-output').style.display='block';
+  document.getElementById('briefing-output').innerHTML=h.html;
+}
+
+function saveHistory(verdictClass, verdictText, html){
+  const raw=localStorage.getItem('briefing-history')||'[]';
+  const hist=JSON.parse(raw);
+  hist.push({
+    date: new Date().toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),
+    verdict: verdictClass, verdictText, html
+  });
+  localStorage.setItem('briefing-history', JSON.stringify(hist.slice(-20)));
+  loadHistory();
+}
+
+// ── FORMAT RESPONSE ──
+function formatBriefing(text){
+  const lines=text.split('\n');
+  let html='<div class="briefing-content">';
+  for(const raw of lines){
+    const line=raw.trim();
+    if(!line){ html+='<span style="display:block;height:6px"></span>'; continue; }
+    if(/^[━═─■]+$/.test(line)){ html+=`<span class="bf-sep">${line}</span>`; continue; }
+    if(line.startsWith('##')||line.startsWith('🌅')||line.startsWith('📊')||
+       line.startsWith('📰')||line.startsWith('⚠')||line.startsWith('🎯')||
+       line.startsWith('✅')||line.startsWith('🛑')||line.startsWith('📋')||
+       line.startsWith('💡')||line.startsWith('⏰')||line.startsWith('🔍')){
+      html+=`<span class="bf-head">${line}</span>`; continue;
+    }
+    if(line.includes('[OK]')||line.startsWith('✓')){ html+=`<span class="bf-ok">${line}</span>`; continue; }
+    if(line.includes('[NO]')||line.startsWith('✗')){ html+=`<span class="bf-danger">${line}</span>`; continue; }
+    if(line.includes('[WARN]')||line.startsWith('⚡')){ html+=`<span class="bf-warn">${line}</span>`; continue; }
+    if(/\$[\d,]+/.test(line)&&line.includes('סיכון')){ html+=`<span class="bf-num">${line}</span>`; continue; }
+    html+=`<span class="bf-line">${line}</span>`;
+  }
+  html+='</div>';
+
+  // detect verdict
+  let verdictClass='wait', verdictText='⏳ ממתין';
+  if(/תסחר|TRADE|כן לסחור|green light/i.test(text)){ verdictClass='trade'; verdictText='✅ סחור היום'; }
+  else if(/אל תסחר|AVOID|לא לסחור|red light|מסוכן/i.test(text)){ verdictClass='avoid'; verdictText='🛑 אל תסחר'; }
+  else if(/המתן|WAIT|זהירות|cautious/i.test(text)){ verdictClass='wait'; verdictText='⚡ המתן לאישור'; }
+
+  const verdictEl=`<div class="bf-verdict ${verdictClass}">${verdictText}</div>`;
+  return { html: html+verdictEl, verdictClass, verdictText };
+}
+
+// ── MAIN: RUN BRIEFING ──
+async function runBriefing(){
+  const btn=document.getElementById('run-btn');
+  btn.disabled=true;
+  btn.innerHTML='<div class="spinner"></div> מכין תדריך...';
+
+  // gather context
+  const pnl=document.getElementById('inp-pnl').value||'0';
+  const days=document.getElementById('inp-days').value||'0';
+  const inst=document.getElementById('inp-inst').value;
+  const contracts=document.getElementById('inp-contracts').value;
+  const macro=document.getElementById('inp-macro').value||'לא ידועים';
+  const notes=document.getElementById('inp-notes').value||'אין';
+
+  const indicators=[];
+  if(document.getElementById('ind-ct').checked)   indicators.push('Champion Trend — כיוון ברור');
+  if(document.getElementById('ind-vwap').checked)  indicators.push('מחיר מעל VWAP');
+  if(document.getElementById('ind-sd').checked)    indicators.push('Supply/Demand — אזור תמיכה');
+  if(document.getElementById('ind-ws').checked)    indicators.push('WealthSignal — ירוק');
+  if(document.getElementById('ind-rb').checked)    indicators.push('Range Breaker — פריצה');
+
+  // show typing
+  const out=document.getElementById('briefing-output');
+  const empty=document.getElementById('empty-state');
+  empty.style.display='none';
+  out.style.display='block';
+  out.innerHTML=`<div class="typing-row"><span></span><span></span><span></span><span style="margin-right:10px;font-family:var(--mono);font-size:11px;color:var(--mid)">Opus 4.8 מכין תדריך...</span></div>`;
+
+  const now=new Date();
+  const dateStr=now.toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const timeStr=now.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Jerusalem'});
+
+  const systemPrompt=`אתה "נוסטרו" — יועץ מסחר בכיר, מומחה לחשבונות Apex Trader Funding ולנגזרים.
+תפקידך: להכין תדריך בוקר יומי מקיף לסוחר ישראלי.
+
+חוקי Apex 50K — חשוב מאוד:
+- יעד רווח: $3,000 (מינימום 7 ימי מסחר)
+- Trailing Drawdown: $2,500 נגרר אחרי peak intraday (ננעל כשמגיעים ל-$2,600)
+- ללא כלל הפסד יומי קשיח — אבל הDD הוא הסכנה
+- 30% Consistency: שום יום לא יכול להוות יותר מ-30% מסך הרווח
+- אסור overnight — כל פוזיציות נסגרות לפני סוף יום
+- מומלץ: 1 חוזה MNQ בלבד עד שהDD נעול
+- שעות מומלצות (שעון ישראל): 16:50–17:30 (primary), 17:30–18:30 (VWAP reversion)
+
+סטאק אינדיקטורים (WealthCharts):
+Champion Trend, VWAP, Supply & Demand Blocks, WealthSignal, Range Breaker
+
+פורמט התדריך (חובה לפלט בדיוק כך):
+🌅 תדריך בוקר — [תאריך]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 מצב שוק עכשווי
+[ניתוח NQ/Nasdaq — מחיר, כיוון, נפח, גרף]
+
+📰 חדשות ואירועי מאקרו
+[אירועי היום: CPI/FOMC/NFP וכד' — אם יש. אם אין — ציין]
+
+🔍 ניתוח טכני — [המכשיר הנבחר]
+[קריאת גרף 5 דקות + 1 שעה, רמות מפתח, VWAP, S/D zones]
+
+⚠ ניהול סיכון היום
+[על בסיס חשבון הנוכחי — כמה אפשר להסתכן, מקסימום הפסד]
+
+⏰ חלונות מסחר מומלצים
+[שעות ישראל בלבד]
+
+🎯 המלצת יום
+[תסחר / המתן / אל תסחר — עם הסבר קצר]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+הנחיות:
+- חפש מידע חי על NQ ועל חדשות מאקרו לפני שאתה כותב
+- דייק בנתונים — אל תמציא מחירים
+- עברית טבעית + מונחים מקצועיים באנגלית
+- קצר וממוקד — סוחר רוצה תשובה מהירה`;
+
+  const userMsg=`תאריך: ${dateStr} | שעה: ${timeStr}
+
+מצב חשבון Apex:
+- P&L נוכחי: $${pnl}
+- ימי מסחר: ${days}
+- Trailing Drawdown נותר: ${Math.max(0,2500-Math.max(0,parseFloat(pnl)))} (${parseFloat(pnl)>=2600?'נעול':'עדיין נגרר'})
+
+תכנון היום:
+- מכשיר: ${inst}
+- חוזים: ${contracts}
+- אירועי מאקרו: ${macro}
+- הערות: ${notes}
+
+אינדיקטורים שבדקתי עכשיו (WealthCharts):
+${indicators.length>0 ? indicators.join('\n') : '(לא בדקתי עדיין)'}
+
+אנא בצע חיפוש חי לחדשות NQ ומדדים, ואז תכין תדריך בוקר מלא לפי הפורמט.`;
+
+  try {
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-opus-4-8",
+        max_tokens:1000,
+        system:systemPrompt,
+        tools:[{type:"web_search_20250305",name:"web_search"}],
+        messages:[{role:"user",content:userMsg}]
+      })
+    });
+    const data=await res.json();
+    let text='';
+    if(data.content) for(const b of data.content) if(b.type==='text') text+=b.text;
+    if(!text&&data.error) text='שגיאה: '+data.error.message;
+
+    const {html,verdictClass,verdictText}=formatBriefing(text||'לא התקבלה תשובה.');
+    out.innerHTML=html;
+    saveHistory(verdictClass,verdictText,html);
+  } catch(err){
+    out.innerHTML='<span class="bf-danger">שגיאת חיבור. בדוק אינטרנט ונסה שוב.</span>';
+  }
+
+  btn.disabled=false;
+  btn.innerHTML='🔄 רענן תדריך';
+}
+
+// ── INIT ──
+loadHistory();
+</script>
+</body>
+</html>
